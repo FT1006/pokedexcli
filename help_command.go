@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"sort"
-
-	"github.com/FT1006/pokedexcli/internal"
 )
 
-func commandHelp(c *internal.Config) error {
+func commandHelp(c *Config) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Printf("Usage\n\n")
 	var cmdNames []string
