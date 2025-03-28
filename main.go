@@ -1,7 +1,16 @@
 package main
 
+import "github.com/FT1006/pokedexcli/internal/pokeapi"
+
 func main() {
-	var cfg Config
+	pokeapiClient := pokeapi.NewClient()
+
+	cfg := Config{
+		pokeapiClient: pokeapiClient,
+		next:          "",
+		prev:          "",
+	}
+
 	repl(&cfg)
 }
 
