@@ -5,17 +5,10 @@ import (
 	"log"
 )
 
-type LocationArea struct {
-	Count    int    `json:"count"`
-	Next     string `json:"next"`
-	Previous string `json:"previous"`
-	Results  []struct {
-		Name string `json:"name"`
-		URL  string `json:"url"`
-	} `json:"results"`
-}
-
-func commandMap(c *Config) error {
+func commandMap(additionalInput string, c *Config) error {
+	if additionalInput != "" {
+		fmt.Println("Additional input has been ignored")
+	}
 	areas, err := c.pokeapiClient.GetLocationAreaList(c.next)
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +21,10 @@ func commandMap(c *Config) error {
 	return nil
 }
 
-func commandMapBack(c *Config) error {
+func commandMapBack(additionalInput string, c *Config) error {
+	if additionalInput != "" {
+		fmt.Println("Additional input has been ignored")
+	}
 	if c.prev == "" {
 		fmt.Println("you're on the first page")
 		return nil
