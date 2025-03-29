@@ -7,6 +7,7 @@ func main() {
 
 	cfg := Config{
 		pokeapiClient: pokeapiClient,
+		caughtPokemon: make(map[string]Pokemon),
 		next:          "",
 		prev:          "",
 	}

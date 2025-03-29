@@ -6,6 +6,7 @@ import (
 
 type Config struct {
 	pokeapiClient *pokeapi.Client
+	caughtPokemon map[string]Pokemon
 	next          string
 	prev          string
 }

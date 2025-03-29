@@ -9,6 +9,7 @@ import (
 )
 
 func (c *Client) GetLocationAreaList(url string) (LocationArea, error) {
+	var areas LocationArea
 	if url == "" {
 		url = getBaseURL() + "location-area/"
 	}
@@ -16,7 +17,6 @@ func (c *Client) GetLocationAreaList(url string) (LocationArea, error) {
 	if cached, ok := c.pokecache.Get(url); ok {
 		// When retrieving from cache:
 		fmt.Println("Cache hit! Using cached data for:", url)
-		var areas LocationArea
 		err := json.Unmarshal(cached, &areas)
 		if err != nil {
 			return LocationArea{}, err
@@ -38,7 +38,6 @@ func (c *Client) GetLocationAreaList(url string) (LocationArea, error) {
 
 	c.pokecache.Add(url, body)
 
-	var areas LocationArea
 	err = json.Unmarshal(body, &areas)
 	if err != nil {
 		log.Fatal(err)

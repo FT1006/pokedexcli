@@ -1,36 +1,42 @@
 package main
 
-func callCommand() map[string]cliCommand {
-	return map[string]cliCommand{
-		"exit": {
-			name:        "exit",
-			description: "Exit the Pokedex",
-			callback:    commandExit,
-		},
-		"help": {
-			name:        "help",
-			description: "Displays a help message",
-			callback:    commandHelp,
-		},
-		"map": {
-			name:        "map",
-			description: "Displays the next 20 maps",
-			callback:    commandMap,
-		},
-		"mapb": {
-			name:        "mapb",
-			description: "Displays the previous 20 maps",
-			callback:    commandMapBack,
-		},
-		"explore": {
-			name:        "explore [area name]",
-			description: "Explore an area. Example: explore pastoria-city-area",
-			callback:    commandExplore,
-		},
-		"catch": {
-			name:        "catch [pokemon name]",
-			description: "Try to catch a pokemon. Example: catch pikachu",
-			callback:    commandExplore,
-		},
+import (
+	"fmt"
+	"log"
+)
+
+func commandMap(additionalInput string, c *Config) error {
+	if additionalInput != "" {
+		fmt.Println("Additional input has been ignored")
 	}
+	areas, err := c.pokeapiClient.GetLocationAreaList(c.next)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.next = areas.Next
+	c.prev = areas.Previous
+	for _, area := range areas.Results {
+		fmt.Println(area.Name)
+	}
+	return nil
+}
+
+func commandMapBack(additionalInput string, c *Config) error {
+	if additionalInput != "" {
+		fmt.Println("Additional input has been ignored")
+	}
+	if c.prev == "" {
+		fmt.Println("you're on the first page")
+		return nil
+	}
+	areas, err := c.pokeapiClient.GetLocationAreaList(c.prev)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.next = areas.Next
+	c.prev = areas.Previous
+	for _, area := range areas.Results {
+		fmt.Println(area.Name)
+	}
+	return nil
 }

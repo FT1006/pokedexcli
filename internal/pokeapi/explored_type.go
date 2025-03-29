@@ -13,17 +13,9 @@ type EncounterMethod struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
 }
-type Version struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-type EncounterVersionDetails struct {
-	Rate    int     `json:"rate"`
-	Version Version `json:"version"`
-}
+
 type EncounterMethodRates struct {
-	EncounterMethod EncounterMethod           `json:"encounter_method"`
-	VersionDetails  []EncounterVersionDetails `json:"version_details"`
+	EncounterMethod EncounterMethod `json:"encounter_method"`
 }
 type Location struct {
 	Name string `json:"name"`
@@ -55,9 +47,7 @@ type EncounterDetails struct {
 type VersionDetails struct {
 	EncounterDetails []EncounterDetails `json:"encounter_details"`
 	MaxChance        int                `json:"max_chance"`
-	Version          Version            `json:"version"`
 }
 type PokemonEncounters struct {
-	Pokemon        Pokemon          `json:"pokemon"`
-	VersionDetails []VersionDetails `json:"version_details"`
+	Pokemon Pokemon `json:"pokemon"`
 }
