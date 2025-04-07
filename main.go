@@ -38,6 +38,7 @@ func main() {
 	// Create services
 	pokemonService := database.NewPokemonService(dbService)
 	trainerService := database.NewTrainerService(dbService)
+	partyService := database.NewPartyService(dbService, pokemonService)
 
 	cfg := Config{
 		pokeapiClient:      pokeapiClient,
@@ -48,6 +49,7 @@ func main() {
 		dbService:          dbService,
 		pokemonService:     pokemonService,
 		trainerService:     trainerService,
+		partyService:       partyService,
 		currentTrainer:     nil, // Will be set when user saves or loads a trainer
 	}
 

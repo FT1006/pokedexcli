@@ -83,19 +83,29 @@ func (s *PokemonService) ConvertToOwnedPokemon(trainerID int32, p APIPokemon) (A
 	}, nil
 }
 
-// Convert DB Pokedex to API Pokemon
-func (s *PokemonService) ConvertFromPokedex(p Pokedex) (APIPokemon, error) {
+// Helper function to unmarshal stats and types JSON
+func (s *PokemonService) UnmarshalStatsAndTypes(statsJSON, typesJSON []byte) ([]APIStats, []APITypes, error) {
 	var stats []APIStats
 	var types []APITypes
 
 	// Unmarshal stats
-	if err := json.Unmarshal(p.Stats, &stats); err != nil {
-		return APIPokemon{}, fmt.Errorf("error unmarshaling stats: %w", err)
+	if err := json.Unmarshal(statsJSON, &stats); err != nil {
+		return nil, nil, fmt.Errorf("error unmarshaling stats: %w", err)
 	}
 
 	// Unmarshal types
-	if err := json.Unmarshal(p.Types, &types); err != nil {
-		return APIPokemon{}, fmt.Errorf("error unmarshaling types: %w", err)
+	if err := json.Unmarshal(typesJSON, &types); err != nil {
+		return nil, nil, fmt.Errorf("error unmarshaling types: %w", err)
+	}
+
+	return stats, types, nil
+}
+
+// Convert DB Pokedex to API Pokemon
+func (s *PokemonService) ConvertFromPokedex(p Pokedex) (APIPokemon, error) {
+	stats, types, err := s.UnmarshalStatsAndTypes(p.Stats, p.Types)
+	if err != nil {
+		return APIPokemon{}, err
 	}
 
 	return APIPokemon{

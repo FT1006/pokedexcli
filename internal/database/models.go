@@ -20,6 +20,14 @@ type Ownpoke struct {
 	CaughtAt       pgtype.Timestamp `json:"caught_at"`
 }
 
+type Party struct {
+	ID        int32            `json:"id"`
+	TrainerID int32            `json:"trainer_id"`
+	OwnpokeID int32            `json:"ownpoke_id"`
+	Slot      int32            `json:"slot"`
+	AddedAt   pgtype.Timestamp `json:"added_at"`
+}
+
 type Pokedex struct {
 	ID             int32            `json:"id"`
 	TrainerID      int32            `json:"trainer_id"`
