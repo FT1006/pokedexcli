@@ -8,7 +8,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Pokemon struct {
+type Ownpoke struct {
+	ID             int32            `json:"id"`
+	TrainerID      int32            `json:"trainer_id"`
+	Name           string           `json:"name"`
+	Height         int32            `json:"height"`
+	Weight         int32            `json:"weight"`
+	BaseExperience int32            `json:"base_experience"`
+	Stats          []byte           `json:"stats"`
+	Types          []byte           `json:"types"`
+	CaughtAt       pgtype.Timestamp `json:"caught_at"`
+}
+
+type Pokedex struct {
 	ID             int32            `json:"id"`
 	TrainerID      int32            `json:"trainer_id"`
 	Name           string           `json:"name"`

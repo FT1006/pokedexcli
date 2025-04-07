@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
-	
+
 	"github.com/FT1006/pokedexcli/internal/models"
 )
 
@@ -59,13 +60,26 @@ func commandCatch(pokemon string, c *Config) error {
 			}
 		}
 
-		c.caughtPokemon[pokemon] = models.Pokemon{
+		caughtPokemon := models.Pokemon{
 			Name:           pokemonInfo.Name,
 			Height:         pokemonInfo.Height,
 			Weight:         pokemonInfo.Weight,
 			Stats:          caughtStats,
 			Types:          caughtTypes,
 			BaseExperience: pokemonInfo.BaseExperience,
+		}
+
+		// Add to in-memory maps
+		c.caughtPokemon[pokemon] = caughtPokemon
+		c.newlyCaughtPokemon[pokemon] = caughtPokemon
+
+		// If database is initialized, save to database
+		if c.dbService != nil && c.currentTrainer != nil {
+			ctx := context.Background()
+			err := c.pokemonService.SavePokemon(ctx, c.currentTrainer.ID, caughtPokemon)
+			if err != nil {
+				fmt.Printf("Warning: could not save pokemon to database: %v\n", err)
+			}
 		}
 
 	} else {

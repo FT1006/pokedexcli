@@ -24,10 +24,11 @@ func main() {
 		fmt.Printf("Error connecting to database: %v\n", err)
 		// Fall back to local mode without database
 		cfg := Config{
-			pokeapiClient: pokeapiClient,
-			caughtPokemon: make(map[string]models.Pokemon),
-			next:          "",
-			prev:          "",
+			pokeapiClient:      pokeapiClient,
+			caughtPokemon:      make(map[string]models.Pokemon),
+			newlyCaughtPokemon: make(map[string]models.Pokemon),
+			next:               "",
+			prev:               "",
 		}
 		repl(&cfg)
 		return
@@ -39,14 +40,15 @@ func main() {
 	trainerService := database.NewTrainerService(dbService)
 
 	cfg := Config{
-		pokeapiClient:  pokeapiClient,
-		caughtPokemon:  make(map[string]models.Pokemon),
-		next:           "",
-		prev:           "",
-		dbService:      dbService,
-		pokemonService: pokemonService,
-		trainerService: trainerService,
-		currentTrainer: nil, // Will be set when user saves or loads a trainer
+		pokeapiClient:      pokeapiClient,
+		caughtPokemon:      make(map[string]models.Pokemon),
+		newlyCaughtPokemon: make(map[string]models.Pokemon),
+		next:               "",
+		prev:               "",
+		dbService:          dbService,
+		pokemonService:     pokemonService,
+		trainerService:     trainerService,
+		currentTrainer:     nil, // Will be set when user saves or loads a trainer
 	}
 
 	repl(&cfg)
