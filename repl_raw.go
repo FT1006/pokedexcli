@@ -33,7 +33,8 @@ func repl(cfg *Config) {
 	fmt.Print("\r\033[2KPokedex > ")
 
 	for {
-		buffer := make([]byte, 3)
+		// Increase buffer size to handle paste operations
+		buffer := make([]byte, 1024)
 		n, err := os.Stdin.Read(buffer)
 		if err != nil {
 			fmt.Println("Error reading input:", err)
@@ -153,7 +154,20 @@ func repl(cfg *Config) {
 			continue
 		}
 
-		// Printable characters
+		// Handle paste operations (multiple characters at once)
+		if n > 1 {
+			// Process each character in the pasted content
+			for i := 0; i < n; i++ {
+				// Only handle printable ASCII characters
+				if buffer[i] >= 32 && buffer[i] <= 126 {
+					currentInput += string(buffer[i])
+					fmt.Print(string(buffer[i]))
+				}
+			}
+			continue
+		}
+
+		// Single printable character
 		if n == 1 && buffer[0] >= 32 && buffer[0] <= 126 {
 			currentInput += string(buffer[0])
 			fmt.Print(string(buffer[0]))
