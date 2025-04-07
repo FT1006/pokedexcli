@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	
+	"github.com/FT1006/pokedexcli/internal/models"
 )
 
 func commandCatch(pokemon string, c *Config) error {
@@ -33,36 +35,37 @@ func commandCatch(pokemon string, c *Config) error {
 		fmt.Println(pokemonInfo.Name + " was caught!")
 		fmt.Println("You may now inspect it with the inspect command.")
 
-		caughtStats := make([]Stats, len(pokemonInfo.Stats))
+		caughtStats := make([]models.Stats, len(pokemonInfo.Stats))
 
 		for i, stat := range pokemonInfo.Stats {
-			caughtStats[i] = Stats{
+			caughtStats[i] = models.Stats{
 				BaseStat: stat.BaseStat,
 				Effort:   stat.Effort,
-				Stat: Stat{
+				Stat: models.Stat{
 					Name: stat.Stat.Name,
 					URL:  stat.Stat.URL,
 				},
 			}
 		}
 
-		caughtTypes := make([]Types, len(pokemonInfo.Types))
+		caughtTypes := make([]models.Types, len(pokemonInfo.Types))
 		for i, typ := range pokemonInfo.Types {
-			caughtTypes[i] = Types{
+			caughtTypes[i] = models.Types{
 				Slot: typ.Slot,
-				Type: Type{
+				Type: models.Type{
 					Name: typ.Type.Name,
 					URL:  typ.Type.URL,
 				},
 			}
 		}
 
-		c.caughtPokemon[pokemon] = Pokemon{
-			Name:   pokemonInfo.Name,
-			Height: pokemonInfo.Height,
-			Weight: pokemonInfo.Weight,
-			Stats:  caughtStats,
-			Types:  caughtTypes,
+		c.caughtPokemon[pokemon] = models.Pokemon{
+			Name:           pokemonInfo.Name,
+			Height:         pokemonInfo.Height,
+			Weight:         pokemonInfo.Weight,
+			Stats:          caughtStats,
+			Types:          caughtTypes,
+			BaseExperience: pokemonInfo.BaseExperience,
 		}
 
 	} else {
