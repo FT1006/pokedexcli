@@ -11,14 +11,16 @@ import (
 )
 
 type Querier interface {
-	CreatePokemon(ctx context.Context, arg CreatePokemonParams) (Pokemon, error)
+	AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams) (Ownpoke, error)
+	CreatePokedexEntry(ctx context.Context, arg CreatePokedexEntryParams) error
 	CreateTrainer(ctx context.Context, name pgtype.Text) (Trainer, error)
-	DeletePokemon(ctx context.Context, id int32) error
-	GetPokemon(ctx context.Context, id int32) (Pokemon, error)
-	GetPokemonByNameAndTrainer(ctx context.Context, arg GetPokemonByNameAndTrainerParams) (Pokemon, error)
+	DeletePokedexEntry(ctx context.Context, id int32) error
+	GetPokedexEntry(ctx context.Context, id int32) (Pokedex, error)
+	GetPokedexEntryByNameAndTrainer(ctx context.Context, arg GetPokedexEntryByNameAndTrainerParams) (Pokedex, error)
 	GetTrainer(ctx context.Context, id int32) (Trainer, error)
 	GetTrainerByName(ctx context.Context, name pgtype.Text) (Trainer, error)
-	ListPokemonByTrainer(ctx context.Context, trainerID int32) ([]Pokemon, error)
+	ListOwnedPokemonByTrainer(ctx context.Context, trainerID int32) ([]Ownpoke, error)
+	ListPokedexByTrainer(ctx context.Context, trainerID int32) ([]Pokedex, error)
 	ListTrainers(ctx context.Context, arg ListTrainersParams) ([]Trainer, error)
 	UpdateTrainer(ctx context.Context, arg UpdateTrainerParams) (Trainer, error)
 }

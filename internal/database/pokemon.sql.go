@@ -9,8 +9,8 @@ import (
 	"context"
 )
 
-const createPokemon = `-- name: CreatePokemon :one
-INSERT INTO pokemon (
+const addOwnedPokemon = `-- name: AddOwnedPokemon :one
+INSERT INTO ownpoke (
     trainer_id,
     name,
     height,
@@ -20,10 +20,10 @@ INSERT INTO pokemon (
     types
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at
+) RETURNING id, trainer_id, name, height, weight, base_experience, stats, types, caught_at
 `
 
-type CreatePokemonParams struct {
+type AddOwnedPokemonParams struct {
 	TrainerID      int32  `json:"trainer_id"`
 	Name           string `json:"name"`
 	Height         int32  `json:"height"`
@@ -33,8 +33,8 @@ type CreatePokemonParams struct {
 	Types          []byte `json:"types"`
 }
 
-func (q *Queries) CreatePokemon(ctx context.Context, arg CreatePokemonParams) (Pokemon, error) {
-	row := q.db.QueryRow(ctx, createPokemon,
+func (q *Queries) AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams) (Ownpoke, error) {
+	row := q.db.QueryRow(ctx, addOwnedPokemon,
 		arg.TrainerID,
 		arg.Name,
 		arg.Height,
@@ -43,7 +43,7 @@ func (q *Queries) CreatePokemon(ctx context.Context, arg CreatePokemonParams) (P
 		arg.Stats,
 		arg.Types,
 	)
-	var i Pokemon
+	var i Ownpoke
 	err := row.Scan(
 		&i.ID,
 		&i.TrainerID,
@@ -53,30 +53,67 @@ func (q *Queries) CreatePokemon(ctx context.Context, arg CreatePokemonParams) (P
 		&i.BaseExperience,
 		&i.Stats,
 		&i.Types,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.CaughtAt,
 	)
 	return i, err
 }
 
-const deletePokemon = `-- name: DeletePokemon :exec
-DELETE FROM pokemon
-WHERE id = $1
+const createPokedexEntry = `-- name: CreatePokedexEntry :exec
+INSERT INTO pokedex (
+    trainer_id,
+    name,
+    height,
+    weight,
+    base_experience,
+    stats,
+    types
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) 
+ON CONFLICT (trainer_id, name) DO NOTHING
 `
 
-func (q *Queries) DeletePokemon(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deletePokemon, id)
+type CreatePokedexEntryParams struct {
+	TrainerID      int32  `json:"trainer_id"`
+	Name           string `json:"name"`
+	Height         int32  `json:"height"`
+	Weight         int32  `json:"weight"`
+	BaseExperience int32  `json:"base_experience"`
+	Stats          []byte `json:"stats"`
+	Types          []byte `json:"types"`
+}
+
+func (q *Queries) CreatePokedexEntry(ctx context.Context, arg CreatePokedexEntryParams) error {
+	_, err := q.db.Exec(ctx, createPokedexEntry,
+		arg.TrainerID,
+		arg.Name,
+		arg.Height,
+		arg.Weight,
+		arg.BaseExperience,
+		arg.Stats,
+		arg.Types,
+	)
 	return err
 }
 
-const getPokemon = `-- name: GetPokemon :one
-SELECT id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at FROM pokemon
+const deletePokedexEntry = `-- name: DeletePokedexEntry :exec
+DELETE FROM pokedex
+WHERE id = $1
+`
+
+func (q *Queries) DeletePokedexEntry(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deletePokedexEntry, id)
+	return err
+}
+
+const getPokedexEntry = `-- name: GetPokedexEntry :one
+SELECT id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at FROM pokedex
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetPokemon(ctx context.Context, id int32) (Pokemon, error) {
-	row := q.db.QueryRow(ctx, getPokemon, id)
-	var i Pokemon
+func (q *Queries) GetPokedexEntry(ctx context.Context, id int32) (Pokedex, error) {
+	row := q.db.QueryRow(ctx, getPokedexEntry, id)
+	var i Pokedex
 	err := row.Scan(
 		&i.ID,
 		&i.TrainerID,
@@ -92,19 +129,19 @@ func (q *Queries) GetPokemon(ctx context.Context, id int32) (Pokemon, error) {
 	return i, err
 }
 
-const getPokemonByNameAndTrainer = `-- name: GetPokemonByNameAndTrainer :one
-SELECT id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at FROM pokemon
+const getPokedexEntryByNameAndTrainer = `-- name: GetPokedexEntryByNameAndTrainer :one
+SELECT id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at FROM pokedex
 WHERE name = $1 AND trainer_id = $2 LIMIT 1
 `
 
-type GetPokemonByNameAndTrainerParams struct {
+type GetPokedexEntryByNameAndTrainerParams struct {
 	Name      string `json:"name"`
 	TrainerID int32  `json:"trainer_id"`
 }
 
-func (q *Queries) GetPokemonByNameAndTrainer(ctx context.Context, arg GetPokemonByNameAndTrainerParams) (Pokemon, error) {
-	row := q.db.QueryRow(ctx, getPokemonByNameAndTrainer, arg.Name, arg.TrainerID)
-	var i Pokemon
+func (q *Queries) GetPokedexEntryByNameAndTrainer(ctx context.Context, arg GetPokedexEntryByNameAndTrainerParams) (Pokedex, error) {
+	row := q.db.QueryRow(ctx, getPokedexEntryByNameAndTrainer, arg.Name, arg.TrainerID)
+	var i Pokedex
 	err := row.Scan(
 		&i.ID,
 		&i.TrainerID,
@@ -120,21 +157,57 @@ func (q *Queries) GetPokemonByNameAndTrainer(ctx context.Context, arg GetPokemon
 	return i, err
 }
 
-const listPokemonByTrainer = `-- name: ListPokemonByTrainer :many
-SELECT id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at FROM pokemon
+const listOwnedPokemonByTrainer = `-- name: ListOwnedPokemonByTrainer :many
+SELECT id, trainer_id, name, height, weight, base_experience, stats, types, caught_at FROM ownpoke
 WHERE trainer_id = $1
-ORDER BY id
+ORDER BY caught_at DESC
 `
 
-func (q *Queries) ListPokemonByTrainer(ctx context.Context, trainerID int32) ([]Pokemon, error) {
-	rows, err := q.db.Query(ctx, listPokemonByTrainer, trainerID)
+func (q *Queries) ListOwnedPokemonByTrainer(ctx context.Context, trainerID int32) ([]Ownpoke, error) {
+	rows, err := q.db.Query(ctx, listOwnedPokemonByTrainer, trainerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Pokemon{}
+	items := []Ownpoke{}
 	for rows.Next() {
-		var i Pokemon
+		var i Ownpoke
+		if err := rows.Scan(
+			&i.ID,
+			&i.TrainerID,
+			&i.Name,
+			&i.Height,
+			&i.Weight,
+			&i.BaseExperience,
+			&i.Stats,
+			&i.Types,
+			&i.CaughtAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPokedexByTrainer = `-- name: ListPokedexByTrainer :many
+SELECT id, trainer_id, name, height, weight, base_experience, stats, types, created_at, updated_at FROM pokedex
+WHERE trainer_id = $1
+ORDER BY id
+`
+
+func (q *Queries) ListPokedexByTrainer(ctx context.Context, trainerID int32) ([]Pokedex, error) {
+	rows, err := q.db.Query(ctx, listPokedexByTrainer, trainerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Pokedex{}
+	for rows.Next() {
+		var i Pokedex
 		if err := rows.Scan(
 			&i.ID,
 			&i.TrainerID,

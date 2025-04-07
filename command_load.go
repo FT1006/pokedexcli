@@ -29,18 +29,26 @@ func commandLoad(name string, cfg *Config) error {
 	// Update current trainer
 	cfg.currentTrainer = &trainer
 
-	// Load caught Pokemon
+	// Load Pokedex Pokemon
 	pokemons, err := cfg.pokemonService.GetAllPokemon(ctx, trainer.ID)
 	if err != nil {
 		return fmt.Errorf("error loading pokemon: %w", err)
 	}
 
-	// Replace caught Pokemon map
+	// Get owned Pokemon count
+	ownedPokemon, err := cfg.pokemonService.GetAllOwnedPokemon(ctx, trainer.ID)
+	if err != nil {
+		return fmt.Errorf("error getting owned pokemon count: %w", err)
+	}
+
+	// Replace caught Pokemon map and clear newly caught Pokemon
 	cfg.caughtPokemon = make(map[string]models.Pokemon)
+	cfg.newlyCaughtPokemon = make(map[string]models.Pokemon)
 	for _, pokemon := range pokemons {
 		cfg.caughtPokemon[pokemon.Name] = pokemon
 	}
 
-	fmt.Printf("Loaded trainer '%s' with %d Pokemon\n", name, len(cfg.caughtPokemon))
+	fmt.Printf("Loaded trainer '%s' with %d Pokemon owned, %d unique Pokemon in Pokedex\n", 
+		name, len(ownedPokemon), len(pokemons))
 	return nil
 }

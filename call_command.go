@@ -39,8 +39,13 @@ func callCommand() map[string]cliCommand {
 		},
 		"pokedex": {
 			name:        "pokedex",
-			description: "Show pokedex",
+			description: "View unique Pokemon you've caught (no duplicates)",
 			callback:    commandPokedex,
+		},
+		"ownpoke": {
+			name:        "ownpoke",
+			description: "View all Pokemon you've caught including duplicates with catch times",
+			callback:    commandOwnPoke,
 		},
 		"save": {
 			name:        "save [name, optional]",

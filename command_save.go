@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/FT1006/pokedexcli/internal/models"
 )
 
 func commandSave(name string, cfg *Config) error {
@@ -32,14 +34,31 @@ func commandSave(name string, cfg *Config) error {
 	// Update current trainer
 	cfg.currentTrainer = &trainer
 
-	// Save caught Pokemon
-	for _, pokemon := range cfg.caughtPokemon {
-		err := cfg.pokemonService.SavePokemon(ctx, trainer.ID, pokemon)
-		if err != nil {
-			return fmt.Errorf("error saving pokemon: %w", err)
+	// Only add newly caught Pokemon to Pokedex (no duplicates)
+	// We don't add to ownpoke here because they're already added when caught
+	if len(cfg.newlyCaughtPokemon) > 0 {
+		for _, pokemon := range cfg.newlyCaughtPokemon {
+			err := cfg.pokemonService.AddToPokedex(ctx, trainer.ID, pokemon)
+			if err != nil {
+				return fmt.Errorf("error adding pokemon to pokedex: %w", err)
+			}
 		}
+		// Clear the newly caught Pokemon map after saving
+		cfg.newlyCaughtPokemon = make(map[string]models.Pokemon)
 	}
 
-	fmt.Printf("Saved trainer '%s' with %d Pokemon\n", name, len(cfg.caughtPokemon))
+	// Get counts for Pokedex and owned Pokemon
+	pokedexPokemon, err := cfg.pokemonService.GetAllPokemon(ctx, trainer.ID)
+	if err != nil {
+		return fmt.Errorf("error getting pokedex count: %w", err)
+	}
+
+	ownedPokemon, err := cfg.pokemonService.GetAllOwnedPokemon(ctx, trainer.ID)
+	if err != nil {
+		return fmt.Errorf("error getting owned pokemon count: %w", err)
+	}
+
+	fmt.Printf("Saved trainer '%s' with %d Pokemon owned, %d unique Pokemon in Pokedex\n",
+		name, len(ownedPokemon), len(pokedexPokemon))
 	return nil
 }
