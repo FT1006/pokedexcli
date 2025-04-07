@@ -41,6 +41,12 @@ func commandLoad(name string, cfg *Config) error {
 		return fmt.Errorf("error getting owned pokemon count: %w", err)
 	}
 
+	// Get party count
+	partyCount, err := cfg.partyService.GetPartyCount(ctx, trainer.ID)
+	if err != nil {
+		return fmt.Errorf("error getting party count: %w", err)
+	}
+
 	// Replace caught Pokemon map and clear newly caught Pokemon
 	cfg.caughtPokemon = make(map[string]models.Pokemon)
 	cfg.newlyCaughtPokemon = make(map[string]models.Pokemon)
@@ -48,7 +54,7 @@ func commandLoad(name string, cfg *Config) error {
 		cfg.caughtPokemon[pokemon.Name] = pokemon
 	}
 
-	fmt.Printf("Loaded trainer '%s' with %d Pokemon owned, %d unique Pokemon in Pokedex\n", 
-		name, len(ownedPokemon), len(pokemons))
+	fmt.Printf("Loaded trainer '%s' with %d Pokemon owned, %d unique Pokemon in Pokedex, and %d Pokemon in party\n", 
+		name, len(ownedPokemon), len(pokemons), partyCount)
 	return nil
 }

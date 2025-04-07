@@ -47,6 +47,11 @@ func callCommand() map[string]cliCommand {
 			description: "View all Pokemon you've caught including duplicates with catch times",
 			callback:    commandOwnPoke,
 		},
+		"party": {
+			name:        "party",
+			description: "View your active Pokemon party (up to 6 Pokemon)",
+			callback:    commandParty,
+		},
 		"save": {
 			name:        "save [name, optional]",
 			description: "Save your trainer data and caught Pokemon. Example: save ash",

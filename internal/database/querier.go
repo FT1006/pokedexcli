@@ -12,9 +12,13 @@ import (
 
 type Querier interface {
 	AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams) (Ownpoke, error)
+	AddPokemonToParty(ctx context.Context, arg AddPokemonToPartyParams) (Party, error)
 	CreatePokedexEntry(ctx context.Context, arg CreatePokedexEntryParams) error
 	CreateTrainer(ctx context.Context, name pgtype.Text) (Trainer, error)
 	DeletePokedexEntry(ctx context.Context, id int32) error
+	GetPartyByTrainer(ctx context.Context, trainerID int32) ([]GetPartyByTrainerRow, error)
+	GetPartyCount(ctx context.Context, trainerID int32) (int64, error)
+	GetPartySlotOccupied(ctx context.Context, arg GetPartySlotOccupiedParams) (bool, error)
 	GetPokedexEntry(ctx context.Context, id int32) (Pokedex, error)
 	GetPokedexEntryByNameAndTrainer(ctx context.Context, arg GetPokedexEntryByNameAndTrainerParams) (Pokedex, error)
 	GetTrainer(ctx context.Context, id int32) (Trainer, error)

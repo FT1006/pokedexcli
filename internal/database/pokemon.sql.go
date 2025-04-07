@@ -7,6 +7,8 @@ package database
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addOwnedPokemon = `-- name: AddOwnedPokemon :one
@@ -58,6 +60,38 @@ func (q *Queries) AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams
 	return i, err
 }
 
+const addPokemonToParty = `-- name: AddPokemonToParty :one
+INSERT INTO party (
+    trainer_id,
+    ownpoke_id,
+    slot
+) VALUES (
+    $1, $2, $3
+)
+ON CONFLICT (trainer_id, slot) 
+DO UPDATE SET ownpoke_id = EXCLUDED.ownpoke_id, added_at = NOW()
+RETURNING id, trainer_id, ownpoke_id, slot, added_at
+`
+
+type AddPokemonToPartyParams struct {
+	TrainerID int32 `json:"trainer_id"`
+	OwnpokeID int32 `json:"ownpoke_id"`
+	Slot      int32 `json:"slot"`
+}
+
+func (q *Queries) AddPokemonToParty(ctx context.Context, arg AddPokemonToPartyParams) (Party, error) {
+	row := q.db.QueryRow(ctx, addPokemonToParty, arg.TrainerID, arg.OwnpokeID, arg.Slot)
+	var i Party
+	err := row.Scan(
+		&i.ID,
+		&i.TrainerID,
+		&i.OwnpokeID,
+		&i.Slot,
+		&i.AddedAt,
+	)
+	return i, err
+}
+
 const createPokedexEntry = `-- name: CreatePokedexEntry :exec
 INSERT INTO pokedex (
     trainer_id,
@@ -104,6 +138,91 @@ WHERE id = $1
 func (q *Queries) DeletePokedexEntry(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deletePokedexEntry, id)
 	return err
+}
+
+const getPartyByTrainer = `-- name: GetPartyByTrainer :many
+SELECT p.id, p.trainer_id, p.ownpoke_id, p.slot, p.added_at, o.name, o.stats, o.types, o.height, o.weight, o.base_experience
+FROM party p
+JOIN ownpoke o ON p.ownpoke_id = o.id
+WHERE p.trainer_id = $1
+ORDER BY p.slot
+`
+
+type GetPartyByTrainerRow struct {
+	ID             int32            `json:"id"`
+	TrainerID      int32            `json:"trainer_id"`
+	OwnpokeID      int32            `json:"ownpoke_id"`
+	Slot           int32            `json:"slot"`
+	AddedAt        pgtype.Timestamp `json:"added_at"`
+	Name           string           `json:"name"`
+	Stats          []byte           `json:"stats"`
+	Types          []byte           `json:"types"`
+	Height         int32            `json:"height"`
+	Weight         int32            `json:"weight"`
+	BaseExperience int32            `json:"base_experience"`
+}
+
+func (q *Queries) GetPartyByTrainer(ctx context.Context, trainerID int32) ([]GetPartyByTrainerRow, error) {
+	rows, err := q.db.Query(ctx, getPartyByTrainer, trainerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPartyByTrainerRow{}
+	for rows.Next() {
+		var i GetPartyByTrainerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TrainerID,
+			&i.OwnpokeID,
+			&i.Slot,
+			&i.AddedAt,
+			&i.Name,
+			&i.Stats,
+			&i.Types,
+			&i.Height,
+			&i.Weight,
+			&i.BaseExperience,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPartyCount = `-- name: GetPartyCount :one
+SELECT COUNT(*) FROM party
+WHERE trainer_id = $1
+`
+
+func (q *Queries) GetPartyCount(ctx context.Context, trainerID int32) (int64, error) {
+	row := q.db.QueryRow(ctx, getPartyCount, trainerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getPartySlotOccupied = `-- name: GetPartySlotOccupied :one
+SELECT EXISTS(
+    SELECT 1 FROM party
+    WHERE trainer_id = $1 AND slot = $2
+)
+`
+
+type GetPartySlotOccupiedParams struct {
+	TrainerID int32 `json:"trainer_id"`
+	Slot      int32 `json:"slot"`
+}
+
+func (q *Queries) GetPartySlotOccupied(ctx context.Context, arg GetPartySlotOccupiedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, getPartySlotOccupied, arg.TrainerID, arg.Slot)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const getPokedexEntry = `-- name: GetPokedexEntry :one

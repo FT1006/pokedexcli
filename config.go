@@ -15,5 +15,6 @@ type Config struct {
 	dbService         *database.Service
 	pokemonService    *database.PokemonService
 	trainerService    *database.TrainerService
+	partyService      *database.PartyService
 	currentTrainer    *database.Trainer
 }
