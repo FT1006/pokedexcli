@@ -42,5 +42,15 @@ func callCommand() map[string]cliCommand {
 			description: "Show pokedex",
 			callback:    commandPokedex,
 		},
+		"save": {
+			name:        "save [name, optional]",
+			description: "Save your trainer data and caught Pokemon. Example: save ash",
+			callback:    commandSave,
+		},
+		"load": {
+			name:        "load [name]",
+			description: "Load a trainer's data and caught Pokemon. Example: load ash",
+			callback:    commandLoad,
+		},
 	}
 }
