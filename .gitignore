@@ -1,3 +1,4 @@
 go.mod
 pokedexcli
 repl.log
+scripts/setup_db.sh
