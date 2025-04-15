@@ -37,9 +37,11 @@ INSERT INTO ownpoke (
     weight,
     base_experience,
     stats,
-    types
+    types,
+    basic_skill,
+    special_skill
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: ListOwnedPokemonByTrainer :many
@@ -60,7 +62,7 @@ DO UPDATE SET ownpoke_id = EXCLUDED.ownpoke_id, added_at = NOW()
 RETURNING *;
 
 -- name: GetPartyByTrainer :many
-SELECT p.*, o.name, o.stats, o.types, o.height, o.weight, o.base_experience
+SELECT p.*, o.name, o.stats, o.types, o.height, o.weight, o.base_experience, o.basic_skill, o.special_skill
 FROM party p
 JOIN ownpoke o ON p.ownpoke_id = o.id
 WHERE p.trainer_id = $1
