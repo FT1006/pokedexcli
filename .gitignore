@@ -1,4 +1,6 @@
 go.mod
 pokedexcli
 repl.log
-scripts/setup_db.sh
+scripts/
+DATABASE.md
+skill_implementation_step_by_step_plan.md

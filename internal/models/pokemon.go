@@ -8,6 +8,8 @@ type Pokemon struct {
 	Stats          []Stats `json:"stats"`
 	Types          []Types `json:"types"`
 	BaseExperience int     `json:"base_experience"`
+	BasicSkill     *Skill  `json:"basic_skill,omitempty"`
+	SpecialSkill   *Skill  `json:"special_skill,omitempty"`
 }
 
 // Stat represents a specific Pokemon attribute's metadata
