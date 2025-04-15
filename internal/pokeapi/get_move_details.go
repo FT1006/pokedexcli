@@ -23,7 +23,7 @@ func (c *Client) GetMoveDetails(moveName string) (MoveDetails, error) {
 	}
 
 	// Cache miss, make the API request
-	fmt.Println("Getting move details for:", moveName)
+	// fmt.Println("Getting move details for:", moveName)
 	res, err := http.Get(url)
 	if err != nil {
 		return MoveDetails{}, err

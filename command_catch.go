@@ -35,7 +35,6 @@ func commandCatch(pokemon string, c *Config) error {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if r.Float64() < catchChance {
 		fmt.Println(pokemonInfo.Name + " was caught!")
-		fmt.Println("You may now inspect it with the inspect command.")
 
 		caughtStats := make([]models.Stats, len(pokemonInfo.Stats))
 
@@ -61,6 +60,7 @@ func commandCatch(pokemon string, c *Config) error {
 			}
 		}
 
+		// Create base Pokemon structure
 		caughtPokemon := models.Pokemon{
 			Name:           pokemonInfo.Name,
 			Height:         pokemonInfo.Height,
@@ -70,6 +70,29 @@ func commandCatch(pokemon string, c *Config) error {
 			BaseExperience: pokemonInfo.BaseExperience,
 		}
 
+		// Get skills for the Pokemon
+		fmt.Println("Determining " + pokemon + "'s skills...")
+		basicSkill, specialSkill, err := c.pokeapiClient.GetMovesForPokemon(pokemon)
+		if err != nil {
+			fmt.Printf("Warning: could not get skills for %s: %v\n", pokemon, err)
+			fmt.Println("Pokemon will be caught without skills.")
+		} else {
+			// Assign skills to the Pokemon
+			caughtPokemon.BasicSkill = &basicSkill
+			caughtPokemon.SpecialSkill = &specialSkill
+
+			// Display the skills
+			fmt.Printf("%s learned %s (%s type, %s class) and %s (%s type, %s class)!\n",
+				pokemon,
+				basicSkill.Name,
+				basicSkill.Type,
+				basicSkill.Class,
+				specialSkill.Name,
+				specialSkill.Type,
+				specialSkill.Class)
+		}
+		fmt.Println("You may now inspect it with the inspect command.")
+
 		// Add to in-memory maps
 		c.caughtPokemon[pokemon] = caughtPokemon
 		c.newlyCaughtPokemon[pokemon] = caughtPokemon
@@ -78,23 +101,56 @@ func commandCatch(pokemon string, c *Config) error {
 		if c.dbService != nil && c.currentTrainer != nil {
 			ctx := context.Background()
 
-			// Save the Pokemon to the database
-			err := c.pokemonService.SavePokemon(ctx, c.currentTrainer.ID, caughtPokemon)
-			if err != nil {
-				fmt.Printf("Warning: could not save pokemon to database: %v\n", err)
-				return nil
+			// Save the Pokemon to the database with skills
+			var latestPokemonID int32
+
+			if caughtPokemon.BasicSkill != nil && caughtPokemon.SpecialSkill != nil {
+				// Use the new method to save Pokemon with skills
+				pokemonID, err := c.pokemonService.AddPokemonWithSkills(
+					ctx,
+					c.currentTrainer.ID,
+					caughtPokemon,
+					caughtPokemon.BasicSkill,
+					caughtPokemon.SpecialSkill)
+
+				if err != nil {
+					fmt.Printf("Warning: could not save pokemon with skills: %v\n", err)
+					fmt.Println("Falling back to saving without skills...")
+
+					// Fallback to saving without skills
+					err = c.pokemonService.SavePokemon(ctx, c.currentTrainer.ID, caughtPokemon)
+					if err != nil {
+						fmt.Printf("Warning: could not save pokemon to database: %v\n", err)
+						return nil
+					}
+				} else {
+					latestPokemonID = pokemonID
+					// We already have the Pokemon ID, skip to party processing
+					goto ProcessParty
+				}
+			} else {
+				// Save without skills (default behavior)
+				err = c.pokemonService.SavePokemon(ctx, c.currentTrainer.ID, caughtPokemon)
+				if err != nil {
+					fmt.Printf("Warning: could not save pokemon to database: %v\n", err)
+					return nil
+				}
 			}
 
-			// Get the OwnpokeID of the Pokemon we just caught
-			ownedPokemon, err := c.dbService.Queries().ListOwnedPokemonByTrainer(ctx, c.currentTrainer.ID)
-			if err != nil || len(ownedPokemon) == 0 {
-				fmt.Printf("Warning: could not get caught Pokemon ID: %v\n", err)
-				return nil
+			// If we don't already have the Pokemon ID from AddPokemonWithSkills
+			if latestPokemonID == 0 {
+				// Get the OwnpokeID of the Pokemon we just caught
+				ownedPokemon, err := c.dbService.Queries().ListOwnedPokemonByTrainer(ctx, c.currentTrainer.ID)
+				if err != nil || len(ownedPokemon) == 0 {
+					fmt.Printf("Warning: could not get caught Pokemon ID: %v\n", err)
+					return nil
+				}
+
+				// Assuming the most recently caught Pokemon is at index 0 (ordered by caught_at DESC)
+				latestPokemonID = ownedPokemon[0].ID
 			}
 
-			// Assuming the most recently caught Pokemon is at index 0 (ordered by caught_at DESC)
-			latestPokemonID := ownedPokemon[0].ID
-
+		ProcessParty:
 			// Check if party is full
 			partyCount, err := c.partyService.GetPartyCount(ctx, c.currentTrainer.ID)
 			if err != nil {
@@ -122,12 +178,22 @@ func commandCatch(pokemon string, c *Config) error {
 				}
 
 				for _, p := range partyPokemon {
-					fmt.Printf("%d. %s\n", p.Slot, p.Name)
+					fmt.Printf("%d. %s", p.Slot, p.Name)
+					// Display skills if available
+					if p.BasicSkill != nil {
+						fmt.Printf(" (Basic: %s)", p.BasicSkill.Name)
+					}
+					if p.SpecialSkill != nil {
+						fmt.Printf(" (Special: %s)", p.SpecialSkill.Name)
+					}
+					fmt.Println()
 				}
 
 				fmt.Println("Enter a slot number (1-6) to replace, or 'n' to keep your current party:")
 				var input string
-				fmt.Scanln(&input)
+				if _, err := fmt.Scanln(&input); err != nil {
+					fmt.Println("Invalid input. Your party remains unchanged.")
+				}
 
 				// Parse input
 				if input == "n" || input == "N" {

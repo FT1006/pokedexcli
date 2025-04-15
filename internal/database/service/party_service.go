@@ -23,6 +23,8 @@ type PartyPokemon struct {
 	Stats        []models.Stats 
 	Types        []models.Types
 	BaseExperience int
+	BasicSkill   *models.Skill
+	SpecialSkill *models.Skill
 }
 
 type PartyService struct {
@@ -40,16 +42,18 @@ func NewPartyService(db *database.Service, pokemonService *PokemonService) *Part
 // Add a Pokemon to a trainer's party in the specified slot (1-6)
 func (s *PartyService) AddPokemonToParty(ctx context.Context, trainerID int32, ownpokeID int32, slot int) error {
 	if slot < 1 || slot > MAX_PARTY_SIZE {
-		return fmt.Errorf("invalid slot: must be between 1 and %d", MAX_PARTY_SIZE)
+		return fmt.Errorf("invalid party slot: must be between 1 and %d", MAX_PARTY_SIZE)
 	}
 
-	_, err := s.db.Queries().AddPokemonToParty(ctx, dbsqlc.AddPokemonToPartyParams{
+	params := dbsqlc.AddPokemonToPartyParams{
 		TrainerID: trainerID,
 		OwnpokeID: ownpokeID,
-		Slot:     int32(slot),
-	})
+		Slot:      int32(slot),
+	}
+
+	_, err := s.db.Queries().AddPokemonToParty(ctx, params)
 	if err != nil {
-		return fmt.Errorf("error adding Pokemon to party: %w", err)
+		return fmt.Errorf("error adding pokemon to party: %w", err)
 	}
 
 	return nil
@@ -70,6 +74,22 @@ func (s *PartyService) GetParty(ctx context.Context, trainerID int32) ([]PartyPo
 			return nil, err
 		}
 
+		// Unmarshal skills if available
+		var basicSkill, specialSkill *models.Skill
+		if len(row.BasicSkill) > 0 {
+			basicSkill, err = s.pokemonService.UnmarshalSkill(row.BasicSkill)
+			if err != nil {
+				return nil, fmt.Errorf("error unmarshaling basic skill: %w", err)
+			}
+		}
+		
+		if len(row.SpecialSkill) > 0 {
+			specialSkill, err = s.pokemonService.UnmarshalSkill(row.SpecialSkill)
+			if err != nil {
+				return nil, fmt.Errorf("error unmarshaling special skill: %w", err)
+			}
+		}
+		
 		pokemon := PartyPokemon{
 			Slot:         int(row.Slot),
 			OwnpokeID:    row.OwnpokeID,
@@ -80,6 +100,8 @@ func (s *PartyService) GetParty(ctx context.Context, trainerID int32) ([]PartyPo
 			Stats:        stats,
 			Types:        types,
 			BaseExperience: int(row.BaseExperience),
+			BasicSkill:   basicSkill,
+			SpecialSkill: specialSkill,
 		}
 
 		partyPokemon = append(partyPokemon, pokemon)
@@ -94,46 +116,48 @@ func (s *PartyService) GetPartyCount(ctx context.Context, trainerID int32) (int,
 	if err != nil {
 		return 0, fmt.Errorf("error getting party count: %w", err)
 	}
-
+	
 	return int(count), nil
 }
 
-// Check if a specific party slot is occupied
+// Check if a party slot is already occupied
 func (s *PartyService) IsSlotOccupied(ctx context.Context, trainerID int32, slot int) (bool, error) {
 	if slot < 1 || slot > MAX_PARTY_SIZE {
-		return false, fmt.Errorf("invalid slot: must be between 1 and %d", MAX_PARTY_SIZE)
+		return false, fmt.Errorf("invalid party slot: must be between 1 and %d", MAX_PARTY_SIZE)
 	}
-
+	
 	occupied, err := s.db.Queries().GetPartySlotOccupied(ctx, dbsqlc.GetPartySlotOccupiedParams{
 		TrainerID: trainerID,
-		Slot:     int32(slot),
+		Slot:      int32(slot),
 	})
 	if err != nil {
-		return false, fmt.Errorf("error checking slot: %w", err)
+		return false, fmt.Errorf("error checking if slot is occupied: %w", err)
 	}
-
+	
 	return occupied, nil
 }
 
-// Add Pokemon to the next available party slot, or return an error if party is full
+// Add a Pokemon to the first available slot in the party
 func (s *PartyService) AddToNextAvailableSlot(ctx context.Context, trainerID int32, ownpokeID int32) (int, error) {
+	// Check if party is full
 	count, err := s.GetPartyCount(ctx, trainerID)
 	if err != nil {
 		return 0, err
 	}
-
+	
 	if count >= MAX_PARTY_SIZE {
-		return 0, fmt.Errorf("party is full (max %d Pokemon)", MAX_PARTY_SIZE)
+		return 0, fmt.Errorf("party is full")
 	}
-
-	// Find the next empty slot
+	
+	// Find the first available slot
 	for slot := 1; slot <= MAX_PARTY_SIZE; slot++ {
 		occupied, err := s.IsSlotOccupied(ctx, trainerID, slot)
 		if err != nil {
 			return 0, err
 		}
-
+		
 		if !occupied {
+			// Found an empty slot, add the Pokemon
 			err = s.AddPokemonToParty(ctx, trainerID, ownpokeID, slot)
 			if err != nil {
 				return 0, err
@@ -141,7 +165,7 @@ func (s *PartyService) AddToNextAvailableSlot(ctx context.Context, trainerID int
 			return slot, nil
 		}
 	}
-
+	
 	// This should never happen if GetPartyCount works correctly
-	return 0, fmt.Errorf("could not find an empty slot despite party count being less than %d", MAX_PARTY_SIZE)
+	return 0, fmt.Errorf("no available slots found despite party not being full")
 }
