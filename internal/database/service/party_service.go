@@ -1,10 +1,12 @@
-package database
+package service
 
 import (
 	"context"
 	"fmt"
 	"time"
 
+	"github.com/FT1006/pokedexcli/internal/database"
+	dbsqlc "github.com/FT1006/pokedexcli/internal/database/sqlc/db"
 	"github.com/FT1006/pokedexcli/internal/models"
 )
 
@@ -24,11 +26,11 @@ type PartyPokemon struct {
 }
 
 type PartyService struct {
-	db *Service
+	db *database.Service
 	pokemonService *PokemonService
 }
 
-func NewPartyService(db *Service, pokemonService *PokemonService) *PartyService {
+func NewPartyService(db *database.Service, pokemonService *PokemonService) *PartyService {
 	return &PartyService{
 		db: db,
 		pokemonService: pokemonService,
@@ -41,7 +43,7 @@ func (s *PartyService) AddPokemonToParty(ctx context.Context, trainerID int32, o
 		return fmt.Errorf("invalid slot: must be between 1 and %d", MAX_PARTY_SIZE)
 	}
 
-	_, err := s.db.Queries().AddPokemonToParty(ctx, AddPokemonToPartyParams{
+	_, err := s.db.Queries().AddPokemonToParty(ctx, dbsqlc.AddPokemonToPartyParams{
 		TrainerID: trainerID,
 		OwnpokeID: ownpokeID,
 		Slot:     int32(slot),
@@ -102,7 +104,7 @@ func (s *PartyService) IsSlotOccupied(ctx context.Context, trainerID int32, slot
 		return false, fmt.Errorf("invalid slot: must be between 1 and %d", MAX_PARTY_SIZE)
 	}
 
-	occupied, err := s.db.Queries().GetPartySlotOccupied(ctx, GetPartySlotOccupiedParams{
+	occupied, err := s.db.Queries().GetPartySlotOccupied(ctx, dbsqlc.GetPartySlotOccupiedParams{
 		TrainerID: trainerID,
 		Slot:     int32(slot),
 	})

@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	dbsqlc "github.com/FT1006/pokedexcli/internal/database/sqlc/db"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Service struct {
 	db  *pgxpool.Pool
-	dbq *Queries
+	dbq *dbsqlc.Queries
 }
 
 func NewService(connStr string) (*Service, error) {
@@ -28,7 +29,7 @@ func NewService(connStr string) (*Service, error) {
 		return nil, fmt.Errorf("error pinging database: %w", err)
 	}
 
-	queries := New(pool)
+	queries := dbsqlc.New(pool)
 
 	return &Service{
 		db:  pool,
@@ -42,12 +43,12 @@ func (s *Service) Close() {
 	}
 }
 
-func (s *Service) Queries() *Queries {
+func (s *Service) Queries() *dbsqlc.Queries {
 	return s.dbq
 }
 
 // Runs a function within a transaction
-func (s *Service) WithTx(ctx context.Context, fn func(*Queries) error) error {
+func (s *Service) WithTx(ctx context.Context, fn func(*dbsqlc.Queries) error) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err

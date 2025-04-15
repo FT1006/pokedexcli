@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/FT1006/pokedexcli/internal/database"
+	"github.com/FT1006/pokedexcli/internal/database/service"
 	"github.com/FT1006/pokedexcli/internal/models"
 	"github.com/FT1006/pokedexcli/internal/pokeapi"
 )
@@ -36,9 +37,9 @@ func main() {
 	defer dbService.Close()
 
 	// Create services
-	pokemonService := database.NewPokemonService(dbService)
-	trainerService := database.NewTrainerService(dbService)
-	partyService := database.NewPartyService(dbService, pokemonService)
+	pokemonService := service.NewPokemonService(dbService)
+	trainerService := service.NewTrainerService(dbService)
+	partyService := service.NewPartyService(dbService, pokemonService)
 
 	cfg := Config{
 		pokeapiClient:      pokeapiClient,

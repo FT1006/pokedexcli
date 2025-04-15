@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/FT1006/pokedexcli/internal/database"
+	"github.com/FT1006/pokedexcli/internal/database/service"
 	"github.com/FT1006/pokedexcli/internal/models"
 	"github.com/FT1006/pokedexcli/internal/pokeapi"
 )
@@ -13,8 +14,8 @@ type Config struct {
 	next              string
 	prev              string
 	dbService         *database.Service
-	pokemonService    *database.PokemonService
-	trainerService    *database.TrainerService
-	partyService      *database.PartyService
-	currentTrainer    *database.Trainer
+	pokemonService    *service.PokemonService
+	trainerService    *service.TrainerService
+	partyService      *service.PartyService
+	currentTrainer    *service.Trainer
 }

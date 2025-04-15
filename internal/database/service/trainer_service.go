@@ -1,23 +1,25 @@
-package database
+package service
 
 import (
 	"context"
 	
+	"github.com/FT1006/pokedexcli/internal/database"
+	dbsqlc "github.com/FT1006/pokedexcli/internal/database/sqlc/db"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type TrainerService struct {
-	db *Service
+	db *database.Service
 }
 
-func NewTrainerService(db *Service) *TrainerService {
+func NewTrainerService(db *database.Service) *TrainerService {
 	return &TrainerService{
 		db: db,
 	}
 }
 
 // Create or update a trainer by name
-func (s *TrainerService) CreateOrUpdateTrainer(ctx context.Context, name string) (Trainer, error) {
+func (s *TrainerService) CreateOrUpdateTrainer(ctx context.Context, name string) (dbsqlc.Trainer, error) {
 	nameParam := pgtype.Text{String: name, Valid: true}
 	
 	// Check if trainer exists
@@ -32,6 +34,6 @@ func (s *TrainerService) CreateOrUpdateTrainer(ctx context.Context, name string)
 }
 
 // Get a trainer by ID
-func (s *TrainerService) GetTrainer(ctx context.Context, id int32) (Trainer, error) {
+func (s *TrainerService) GetTrainer(ctx context.Context, id int32) (dbsqlc.Trainer, error) {
 	return s.db.Queries().GetTrainer(ctx, id)
 }

@@ -1,4 +1,4 @@
-package database
+package service
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/FT1006/pokedexcli/internal/database"
+	dbsqlc "github.com/FT1006/pokedexcli/internal/database/sqlc/db"
 	"github.com/FT1006/pokedexcli/internal/models"
 )
 
@@ -24,30 +26,30 @@ type OwnedPokemon struct {
 }
 
 type PokemonService struct {
-	db *Service
+	db *database.Service
 }
 
-func NewPokemonService(db *Service) *PokemonService {
+func NewPokemonService(db *database.Service) *PokemonService {
 	return &PokemonService{
 		db: db,
 	}
 }
 
 // Convert API Pokemon to DB Pokedex entry
-func (s *PokemonService) ConvertToPokedex(trainerID int32, p APIPokemon) (CreatePokedexEntryParams, error) {
+func (s *PokemonService) ConvertToPokedex(trainerID int32, p APIPokemon) (dbsqlc.CreatePokedexEntryParams, error) {
 	// Convert stats to JSON
 	statsJSON, err := json.Marshal(p.Stats)
 	if err != nil {
-		return CreatePokedexEntryParams{}, fmt.Errorf("error marshaling stats: %w", err)
+		return dbsqlc.CreatePokedexEntryParams{}, fmt.Errorf("error marshaling stats: %w", err)
 	}
 
 	// Convert types to JSON
 	typesJSON, err := json.Marshal(p.Types)
 	if err != nil {
-		return CreatePokedexEntryParams{}, fmt.Errorf("error marshaling types: %w", err)
+		return dbsqlc.CreatePokedexEntryParams{}, fmt.Errorf("error marshaling types: %w", err)
 	}
 
-	return CreatePokedexEntryParams{
+	return dbsqlc.CreatePokedexEntryParams{
 		TrainerID:      trainerID,
 		Name:           p.Name,
 		Height:         int32(p.Height),
@@ -59,20 +61,20 @@ func (s *PokemonService) ConvertToPokedex(trainerID int32, p APIPokemon) (Create
 }
 
 // Convert API Pokemon to DB Owned Pokemon entry
-func (s *PokemonService) ConvertToOwnedPokemon(trainerID int32, p APIPokemon) (AddOwnedPokemonParams, error) {
+func (s *PokemonService) ConvertToOwnedPokemon(trainerID int32, p APIPokemon) (dbsqlc.AddOwnedPokemonParams, error) {
 	// Convert stats to JSON
 	statsJSON, err := json.Marshal(p.Stats)
 	if err != nil {
-		return AddOwnedPokemonParams{}, fmt.Errorf("error marshaling stats: %w", err)
+		return dbsqlc.AddOwnedPokemonParams{}, fmt.Errorf("error marshaling stats: %w", err)
 	}
 
 	// Convert types to JSON
 	typesJSON, err := json.Marshal(p.Types)
 	if err != nil {
-		return AddOwnedPokemonParams{}, fmt.Errorf("error marshaling types: %w", err)
+		return dbsqlc.AddOwnedPokemonParams{}, fmt.Errorf("error marshaling types: %w", err)
 	}
 
-	return AddOwnedPokemonParams{
+	return dbsqlc.AddOwnedPokemonParams{
 		TrainerID:      trainerID,
 		Name:           p.Name,
 		Height:         int32(p.Height),
@@ -102,7 +104,7 @@ func (s *PokemonService) UnmarshalStatsAndTypes(statsJSON, typesJSON []byte) ([]
 }
 
 // Convert DB Pokedex to API Pokemon
-func (s *PokemonService) ConvertFromPokedex(p Pokedex) (APIPokemon, error) {
+func (s *PokemonService) ConvertFromPokedex(p dbsqlc.Pokedex) (APIPokemon, error) {
 	stats, types, err := s.UnmarshalStatsAndTypes(p.Stats, p.Types)
 	if err != nil {
 		return APIPokemon{}, err
@@ -119,7 +121,7 @@ func (s *PokemonService) ConvertFromPokedex(p Pokedex) (APIPokemon, error) {
 }
 
 // Convert DB OwnPoke to API Pokemon with caught time
-func (s *PokemonService) ConvertFromOwnPoke(p Ownpoke) (OwnedPokemon, error) {
+func (s *PokemonService) ConvertFromOwnPoke(p dbsqlc.Ownpoke) (OwnedPokemon, error) {
 	return OwnedPokemon{
 		Name:     p.Name,
 		CaughtAt: p.CaughtAt.Time,
@@ -175,7 +177,7 @@ func (s *PokemonService) AddToOwnPoke(ctx context.Context, trainerID int32, poke
 
 // Get Pokemon by name from pokedex for a trainer
 func (s *PokemonService) GetPokemonByName(ctx context.Context, trainerID int32, name string) (APIPokemon, error) {
-	dbPokemon, err := s.db.Queries().GetPokedexEntryByNameAndTrainer(ctx, GetPokedexEntryByNameAndTrainerParams{
+	dbPokemon, err := s.db.Queries().GetPokedexEntryByNameAndTrainer(ctx, dbsqlc.GetPokedexEntryByNameAndTrainerParams{
 		Name:      name,
 		TrainerID: trainerID,
 	})
