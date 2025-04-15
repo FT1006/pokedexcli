@@ -18,11 +18,14 @@ type APIStat = models.Stat
 type APIStats = models.Stats
 type APIType = models.Type
 type APITypes = models.Types
+type APISkill = models.Skill
 
 // OwnedPokemon represents a caught pokemon with timestamp
 type OwnedPokemon struct {
-	Name     string
-	CaughtAt time.Time
+	Name         string
+	CaughtAt     time.Time
+	BasicSkill   *APISkill
+	SpecialSkill *APISkill
 }
 
 type PokemonService struct {
@@ -74,6 +77,23 @@ func (s *PokemonService) ConvertToOwnedPokemon(trainerID int32, p APIPokemon) (d
 		return dbsqlc.AddOwnedPokemonParams{}, fmt.Errorf("error marshaling types: %w", err)
 	}
 
+	// Convert skills to JSON (handle nil gracefully)
+	var basicSkillJSON, specialSkillJSON []byte
+
+	if p.BasicSkill != nil {
+		basicSkillJSON, err = json.Marshal(p.BasicSkill)
+		if err != nil {
+			return dbsqlc.AddOwnedPokemonParams{}, fmt.Errorf("error marshaling basic skill: %w", err)
+		}
+	}
+
+	if p.SpecialSkill != nil {
+		specialSkillJSON, err = json.Marshal(p.SpecialSkill)
+		if err != nil {
+			return dbsqlc.AddOwnedPokemonParams{}, fmt.Errorf("error marshaling special skill: %w", err)
+		}
+	}
+
 	return dbsqlc.AddOwnedPokemonParams{
 		TrainerID:      trainerID,
 		Name:           p.Name,
@@ -82,6 +102,8 @@ func (s *PokemonService) ConvertToOwnedPokemon(trainerID int32, p APIPokemon) (d
 		BaseExperience: int32(p.BaseExperience),
 		Stats:          statsJSON,
 		Types:          typesJSON,
+		BasicSkill:     basicSkillJSON,
+		SpecialSkill:   specialSkillJSON,
 	}, nil
 }
 
@@ -120,11 +142,45 @@ func (s *PokemonService) ConvertFromPokedex(p dbsqlc.Pokedex) (APIPokemon, error
 	}, nil
 }
 
+// Helper function to unmarshal skill JSON
+func (s *PokemonService) UnmarshalSkill(skillJSON []byte) (*APISkill, error) {
+	if len(skillJSON) == 0 {
+		return nil, nil // No skill data available
+	}
+
+	var skill APISkill
+	if err := json.Unmarshal(skillJSON, &skill); err != nil {
+		return nil, fmt.Errorf("error unmarshaling skill: %w", err)
+	}
+
+	return &skill, nil
+}
+
 // Convert DB OwnPoke to API Pokemon with caught time
 func (s *PokemonService) ConvertFromOwnPoke(p dbsqlc.Ownpoke) (OwnedPokemon, error) {
+	var basicSkill, specialSkill *APISkill
+	var err error
+
+	// Unmarshal skills if present
+	if len(p.BasicSkill) > 0 {
+		basicSkill, err = s.UnmarshalSkill(p.BasicSkill)
+		if err != nil {
+			return OwnedPokemon{}, fmt.Errorf("error with basic skill: %w", err)
+		}
+	}
+
+	if len(p.SpecialSkill) > 0 {
+		specialSkill, err = s.UnmarshalSkill(p.SpecialSkill)
+		if err != nil {
+			return OwnedPokemon{}, fmt.Errorf("error with special skill: %w", err)
+		}
+	}
+
 	return OwnedPokemon{
-		Name:     p.Name,
-		CaughtAt: p.CaughtAt.Time,
+		Name:         p.Name,
+		CaughtAt:     p.CaughtAt.Time,
+		BasicSkill:   basicSkill,
+		SpecialSkill: specialSkill,
 	}, nil
 }
 
@@ -156,7 +212,7 @@ func (s *PokemonService) AddToPokedex(ctx context.Context, trainerID int32, poke
 	if err != nil {
 		return fmt.Errorf("error creating pokedex entry: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -171,7 +227,7 @@ func (s *PokemonService) AddToOwnPoke(ctx context.Context, trainerID int32, poke
 	if err != nil {
 		return fmt.Errorf("error adding owned pokemon: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -224,4 +280,70 @@ func (s *PokemonService) GetAllOwnedPokemon(ctx context.Context, trainerID int32
 	}
 
 	return ownedPokemons, nil
+}
+
+// UpdatePokemonSkills updates the skills for an owned Pokemon
+func (s *PokemonService) UpdatePokemonSkills(ctx context.Context, pokemonID int32, basicSkill, specialSkill *APISkill) error {
+	// Marshal skills to JSON (handle nil gracefully)
+	var basicSkillJSON, specialSkillJSON []byte
+	var err error
+
+	if basicSkill != nil {
+		basicSkillJSON, err = json.Marshal(basicSkill)
+		if err != nil {
+			return fmt.Errorf("error marshaling basic skill: %w", err)
+		}
+	}
+
+	if specialSkill != nil {
+		specialSkillJSON, err = json.Marshal(specialSkill)
+		if err != nil {
+			return fmt.Errorf("error marshaling special skill: %w", err)
+		}
+	}
+
+	// Update the Pokemon's skills in the database
+	err = s.db.Queries().UpdateOwnedPokemonSkills(ctx, dbsqlc.UpdateOwnedPokemonSkillsParams{
+		ID:           pokemonID,
+		BasicSkill:   basicSkillJSON,
+		SpecialSkill: specialSkillJSON,
+	})
+
+	if err != nil {
+		return fmt.Errorf("error updating pokemon skills: %w", err)
+	}
+
+	return nil
+}
+
+// AddPokemonWithSkills adds a Pokemon to ownpoke with skills
+func (s *PokemonService) AddPokemonWithSkills(ctx context.Context, trainerID int32, pokemon APIPokemon, basicSkill, specialSkill *APISkill) (int32, error) {
+	// Set the skills on the Pokemon
+	pokemonWithSkills := pokemon
+	pokemonWithSkills.BasicSkill = basicSkill
+	pokemonWithSkills.SpecialSkill = specialSkill
+
+	// Convert to DB model
+	ownedPokemon, err := s.ConvertToOwnedPokemon(trainerID, pokemonWithSkills)
+	if err != nil {
+		return 0, err
+	}
+
+	// Add to the database
+	result, err := s.db.Queries().AddOwnedPokemon(ctx, ownedPokemon)
+	if err != nil {
+		return 0, fmt.Errorf("error adding owned pokemon with skills: %w", err)
+	}
+
+	return result.ID, nil
+}
+
+// GetPokemonWithSkills gets a Pokemon with its skills by ID
+func (s *PokemonService) GetPokemonWithSkills(ctx context.Context, pokemonID int32) (OwnedPokemon, error) {
+	dbPokemon, err := s.db.Queries().GetOwnedPokemonByID(ctx, pokemonID)
+	if err != nil {
+		return OwnedPokemon{}, fmt.Errorf("error getting owned pokemon: %w", err)
+	}
+
+	return s.ConvertFromOwnPoke(dbPokemon)
 }

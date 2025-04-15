@@ -77,3 +77,13 @@ SELECT EXISTS(
     SELECT 1 FROM party
     WHERE trainer_id = $1 AND slot = $2
 );
+
+-- name: UpdateOwnedPokemonSkills :exec
+UPDATE ownpoke
+SET basic_skill = $2,
+    special_skill = $3
+WHERE id = $1;
+
+-- name: GetOwnedPokemonByID :one
+SELECT * FROM ownpoke
+WHERE id = $1 LIMIT 1;

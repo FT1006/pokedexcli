@@ -19,10 +19,12 @@ INSERT INTO ownpoke (
     weight,
     base_experience,
     stats,
-    types
+    types,
+    basic_skill,
+    special_skill
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, trainer_id, name, height, weight, base_experience, stats, types, caught_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, trainer_id, name, height, weight, base_experience, stats, types, caught_at, basic_skill, special_skill
 `
 
 type AddOwnedPokemonParams struct {
@@ -33,6 +35,8 @@ type AddOwnedPokemonParams struct {
 	BaseExperience int32  `json:"base_experience"`
 	Stats          []byte `json:"stats"`
 	Types          []byte `json:"types"`
+	BasicSkill     []byte `json:"basic_skill"`
+	SpecialSkill   []byte `json:"special_skill"`
 }
 
 func (q *Queries) AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams) (Ownpoke, error) {
@@ -44,6 +48,8 @@ func (q *Queries) AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams
 		arg.BaseExperience,
 		arg.Stats,
 		arg.Types,
+		arg.BasicSkill,
+		arg.SpecialSkill,
 	)
 	var i Ownpoke
 	err := row.Scan(
@@ -56,6 +62,8 @@ func (q *Queries) AddOwnedPokemon(ctx context.Context, arg AddOwnedPokemonParams
 		&i.Stats,
 		&i.Types,
 		&i.CaughtAt,
+		&i.BasicSkill,
+		&i.SpecialSkill,
 	)
 	return i, err
 }
@@ -140,8 +148,32 @@ func (q *Queries) DeletePokedexEntry(ctx context.Context, id int32) error {
 	return err
 }
 
+const getOwnedPokemonByID = `-- name: GetOwnedPokemonByID :one
+SELECT id, trainer_id, name, height, weight, base_experience, stats, types, caught_at, basic_skill, special_skill FROM ownpoke
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetOwnedPokemonByID(ctx context.Context, id int32) (Ownpoke, error) {
+	row := q.db.QueryRow(ctx, getOwnedPokemonByID, id)
+	var i Ownpoke
+	err := row.Scan(
+		&i.ID,
+		&i.TrainerID,
+		&i.Name,
+		&i.Height,
+		&i.Weight,
+		&i.BaseExperience,
+		&i.Stats,
+		&i.Types,
+		&i.CaughtAt,
+		&i.BasicSkill,
+		&i.SpecialSkill,
+	)
+	return i, err
+}
+
 const getPartyByTrainer = `-- name: GetPartyByTrainer :many
-SELECT p.id, p.trainer_id, p.ownpoke_id, p.slot, p.added_at, o.name, o.stats, o.types, o.height, o.weight, o.base_experience
+SELECT p.id, p.trainer_id, p.ownpoke_id, p.slot, p.added_at, o.name, o.stats, o.types, o.height, o.weight, o.base_experience, o.basic_skill, o.special_skill
 FROM party p
 JOIN ownpoke o ON p.ownpoke_id = o.id
 WHERE p.trainer_id = $1
@@ -160,6 +192,8 @@ type GetPartyByTrainerRow struct {
 	Height         int32            `json:"height"`
 	Weight         int32            `json:"weight"`
 	BaseExperience int32            `json:"base_experience"`
+	BasicSkill     []byte           `json:"basic_skill"`
+	SpecialSkill   []byte           `json:"special_skill"`
 }
 
 func (q *Queries) GetPartyByTrainer(ctx context.Context, trainerID int32) ([]GetPartyByTrainerRow, error) {
@@ -183,6 +217,8 @@ func (q *Queries) GetPartyByTrainer(ctx context.Context, trainerID int32) ([]Get
 			&i.Height,
 			&i.Weight,
 			&i.BaseExperience,
+			&i.BasicSkill,
+			&i.SpecialSkill,
 		); err != nil {
 			return nil, err
 		}
@@ -277,7 +313,7 @@ func (q *Queries) GetPokedexEntryByNameAndTrainer(ctx context.Context, arg GetPo
 }
 
 const listOwnedPokemonByTrainer = `-- name: ListOwnedPokemonByTrainer :many
-SELECT id, trainer_id, name, height, weight, base_experience, stats, types, caught_at FROM ownpoke
+SELECT id, trainer_id, name, height, weight, base_experience, stats, types, caught_at, basic_skill, special_skill FROM ownpoke
 WHERE trainer_id = $1
 ORDER BY caught_at DESC
 `
@@ -301,6 +337,8 @@ func (q *Queries) ListOwnedPokemonByTrainer(ctx context.Context, trainerID int32
 			&i.Stats,
 			&i.Types,
 			&i.CaughtAt,
+			&i.BasicSkill,
+			&i.SpecialSkill,
 		); err != nil {
 			return nil, err
 		}
@@ -347,4 +385,22 @@ func (q *Queries) ListPokedexByTrainer(ctx context.Context, trainerID int32) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateOwnedPokemonSkills = `-- name: UpdateOwnedPokemonSkills :exec
+UPDATE ownpoke
+SET basic_skill = $2,
+    special_skill = $3
+WHERE id = $1
+`
+
+type UpdateOwnedPokemonSkillsParams struct {
+	ID           int32  `json:"id"`
+	BasicSkill   []byte `json:"basic_skill"`
+	SpecialSkill []byte `json:"special_skill"`
+}
+
+func (q *Queries) UpdateOwnedPokemonSkills(ctx context.Context, arg UpdateOwnedPokemonSkillsParams) error {
+	_, err := q.db.Exec(ctx, updateOwnedPokemonSkills, arg.ID, arg.BasicSkill, arg.SpecialSkill)
+	return err
 }

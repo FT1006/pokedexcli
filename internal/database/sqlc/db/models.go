@@ -18,6 +18,8 @@ type Ownpoke struct {
 	Stats          []byte           `json:"stats"`
 	Types          []byte           `json:"types"`
 	CaughtAt       pgtype.Timestamp `json:"caught_at"`
+	BasicSkill     []byte           `json:"basic_skill"`
+	SpecialSkill   []byte           `json:"special_skill"`
 }
 
 type Party struct {
