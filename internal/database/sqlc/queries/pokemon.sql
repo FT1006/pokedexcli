@@ -87,3 +87,7 @@ WHERE id = $1;
 -- name: GetOwnedPokemonByID :one
 SELECT * FROM ownpoke
 WHERE id = $1 LIMIT 1;
+
+-- name: CountPokemonByTrainer :one
+SELECT COUNT(*) FROM ownpoke
+WHERE trainer_id = $1;

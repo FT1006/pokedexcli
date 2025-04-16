@@ -28,17 +28,17 @@ func callCommand() map[string]cliCommand {
 			callback:    commandMapBack,
 		},
 		"explore": {
-			name:        "explore [area name]",
+			name:        "explore <area-name>",
 			description: "Explore an area. Example: explore pastoria-city-area",
 			callback:    commandExplore,
 		},
 		"catch": {
-			name:        "catch [pokemon name]",
+			name:        "catch <pokemon-name>",
 			description: "Try to catch a pokemon. Example: catch pikachu",
 			callback:    commandCatch,
 		},
 		"inspect": {
-			name:        "inspect [pokemon name]",
+			name:        "inspect <pokemon-name>",
 			description: "Inspect a pokemon with all its instances and skills. Example: inspect pikachu",
 			callback:    commandInspect,
 		},
@@ -58,14 +58,19 @@ func callCommand() map[string]cliCommand {
 			callback:    commandParty,
 		},
 		"save": {
-			name:        "save [name, optional]",
-			description: "Save your trainer data and caught Pokemon. Example: save ash",
+			name:        "save [trainer-name]",
+			description: "Save your trainer data and caught Pokemon. The trainer name is optional.",
 			callback:    commandSave,
 		},
 		"load": {
-			name:        "load [name]",
+			name:        "load <trainer-name>",
 			description: "Load a trainer's data and caught Pokemon. Example: load ash",
 			callback:    commandLoad,
+		},
+		"trainer": {
+			name:        "trainer",
+			description: "View all available trainers that can be loaded",
+			callback:    commandTrainer,
 		},
 	}
 }
