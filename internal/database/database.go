@@ -65,10 +65,3 @@ func (s *Service) WithTx(ctx context.Context, fn func(*dbsqlc.Queries) error) er
 
 	return tx.Commit(ctx)
 }
-
-// Execute migrations on the database - this would use goose in a real application
-func (s *Service) Migrate() error {
-	// In a real application, this would run migrations with goose
-	// For simplicity, we're skipping this step and assuming migrations are run manually
-	return nil
-}
