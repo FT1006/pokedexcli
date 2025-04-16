@@ -34,7 +34,7 @@ func callCommand() map[string]cliCommand {
 		},
 		"inspect": {
 			name:        "inspect [pokemon name]",
-			description: "Inspect a pokemon. Example: inspect pikachu",
+			description: "Inspect a pokemon with all its instances and skills. Example: inspect pikachu",
 			callback:    commandInspect,
 		},
 		"pokedex": {
@@ -44,12 +44,12 @@ func callCommand() map[string]cliCommand {
 		},
 		"ownpoke": {
 			name:        "ownpoke",
-			description: "View all Pokemon you've caught including duplicates with catch times",
+			description: "View all Pokemon you've caught including duplicates with skills and catch times",
 			callback:    commandOwnPoke,
 		},
 		"party": {
-			name:        "party",
-			description: "View your active Pokemon party (up to 6 Pokemon)",
+			name:        "party [change]",
+			description: "View your active Pokemon party (up to 6 Pokemon) with skills. Use 'party change' to substitute party members",
 			callback:    commandParty,
 		},
 		"save": {
