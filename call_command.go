@@ -2,6 +2,11 @@ package main
 
 func callCommand() map[string]cliCommand {
 	return map[string]cliCommand{
+		"battle": {
+			name:        "battle",
+			description: "Show information about the battle system",
+			callback:    commandBattle,
+		},
 		"exit": {
 			name:        "exit",
 			description: "Exit the Pokedex",
