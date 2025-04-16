@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"text/tabwriter"
 )
 
 func commandParty(additionalInput string, c *Config) error {
@@ -27,30 +25,42 @@ func commandParty(additionalInput string, c *Config) error {
 		return nil
 	}
 
-	fmt.Printf("Your Pokemon party (%d/6):\n\n", len(partyPokemon))
+	fmt.Printf("Your Pokemon party (%d/6):\n", len(partyPokemon))
 
-	// Create a tabwriter for nicely aligned output
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
-	fmt.Fprintln(w, "Slot\tName\tTypes\tBase Experience")
-	fmt.Fprintln(w, "----\t----\t-----\t---------------")
-
+	// Use a custom format for party display to include the slot
 	for _, p := range partyPokemon {
-		// Format types as comma-separated list
-		typesStr := ""
-		for i, t := range p.Types {
-			if i > 0 {
-				typesStr += ", "
-			}
-			typesStr += t.Type.Name
+		fmt.Printf("\nSlot %d - Ownpoke ID[%d] - %s\n",
+			p.Slot,
+			p.OwnpokeID,
+			p.Name,
+		)
+
+		// Format types
+		typesStr := formatTypesString(p.Types)
+		fmt.Printf("Types: %s\n", typesStr)
+
+		// Display skills
+		fmt.Println("Skills:")
+		if p.BasicSkill != nil {
+			fmt.Printf("  • Basic: %s (%d damage) - %s type, %s class\n",
+				p.BasicSkill.Name,
+				p.BasicSkill.Damage,
+				p.BasicSkill.Type,
+				p.BasicSkill.Class)
+		} else {
+			fmt.Println("  • Basic: None")
 		}
 
-		fmt.Fprintf(w, "%d\t%s\t%s\t%d\n", 
-			p.Slot, 
-			p.Name, 
-			typesStr,
-			p.BaseExperience)
+		if p.SpecialSkill != nil {
+			fmt.Printf("  • Special: %s (%d damage) - %s type, %s class\n",
+				p.SpecialSkill.Name,
+				p.SpecialSkill.Damage,
+				p.SpecialSkill.Type,
+				p.SpecialSkill.Class)
+		} else {
+			fmt.Println("  • Special: None")
+		}
 	}
-	w.Flush()
 
 	return nil
 }

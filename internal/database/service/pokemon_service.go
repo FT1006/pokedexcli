@@ -22,6 +22,7 @@ type APISkill = models.Skill
 
 // OwnedPokemon represents a caught pokemon with timestamp
 type OwnedPokemon struct {
+	ID           int32     // Database ID
 	Name         string
 	CaughtAt     time.Time
 	BasicSkill   *APISkill
@@ -177,6 +178,7 @@ func (s *PokemonService) ConvertFromOwnPoke(p dbsqlc.Ownpoke) (OwnedPokemon, err
 	}
 
 	return OwnedPokemon{
+		ID:           p.ID,
 		Name:         p.Name,
 		CaughtAt:     p.CaughtAt.Time,
 		BasicSkill:   basicSkill,
@@ -316,26 +318,49 @@ func (s *PokemonService) UpdatePokemonSkills(ctx context.Context, pokemonID int3
 	return nil
 }
 
-// AddPokemonWithSkills adds a Pokemon to ownpoke with skills
+// AddPokemonWithSkills adds a Pokemon to both pokedex and ownpoke with skills
 func (s *PokemonService) AddPokemonWithSkills(ctx context.Context, trainerID int32, pokemon APIPokemon, basicSkill, specialSkill *APISkill) (int32, error) {
 	// Set the skills on the Pokemon
 	pokemonWithSkills := pokemon
 	pokemonWithSkills.BasicSkill = basicSkill
 	pokemonWithSkills.SpecialSkill = specialSkill
 
-	// Convert to DB model
+	// First, add to pokedex (or update if exists)
+	// This ensures the Pokemon is in the trainer's Pokedex for the inspect command
+	pokedexEntry, err := s.ConvertToPokedex(trainerID, pokemonWithSkills)
+	if err != nil {
+		return 0, fmt.Errorf("error creating pokedex entry: %w", err)
+	}
+
+	// Try to add to pokedex - this may fail if already exists, which is OK
+	err = s.db.Queries().CreatePokedexEntry(ctx, pokedexEntry)
+	if err != nil {
+		// If error is not "already exists", return it
+		if !isAlreadyExistsError(err) {
+			return 0, fmt.Errorf("error adding to pokedex: %w", err)
+		}
+		// Otherwise continue - already having it in pokedex is fine
+	}
+
+	// Convert to DB model for ownpoke
 	ownedPokemon, err := s.ConvertToOwnedPokemon(trainerID, pokemonWithSkills)
 	if err != nil {
 		return 0, err
 	}
 
-	// Add to the database
+	// Add to the ownpoke table
 	result, err := s.db.Queries().AddOwnedPokemon(ctx, ownedPokemon)
 	if err != nil {
 		return 0, fmt.Errorf("error adding owned pokemon with skills: %w", err)
 	}
 
 	return result.ID, nil
+}
+
+// Helper function to check if an error is "already exists"
+func isAlreadyExistsError(err error) bool {
+	return err != nil && (err.Error() == "ERROR: duplicate key value violates unique constraint \"pokedex_trainer_id_name_key\" (SQLSTATE 23505)" ||
+		err.Error() == "ERROR: duplicate key value violates unique constraint \"pokedex_pkey\" (SQLSTATE 23505)")
 }
 
 // GetPokemonWithSkills gets a Pokemon with its skills by ID

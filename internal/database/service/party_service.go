@@ -14,27 +14,27 @@ const MAX_PARTY_SIZE = 6
 
 // PartyPokemon represents a pokemon in a trainer's party
 type PartyPokemon struct {
-	Slot         int
-	OwnpokeID    int32
-	Name         string
-	AddedAt      time.Time
-	Height       int
-	Weight       int
-	Stats        []models.Stats 
-	Types        []models.Types
+	Slot           int
+	OwnpokeID      int32
+	Name           string
+	AddedAt        time.Time
+	Height         int
+	Weight         int
+	Stats          []models.Stats
+	Types          []models.Types
 	BaseExperience int
-	BasicSkill   *models.Skill
-	SpecialSkill *models.Skill
+	BasicSkill     *models.Skill
+	SpecialSkill   *models.Skill
 }
 
 type PartyService struct {
-	db *database.Service
+	db             *database.Service
 	pokemonService *PokemonService
 }
 
 func NewPartyService(db *database.Service, pokemonService *PokemonService) *PartyService {
 	return &PartyService{
-		db: db,
+		db:             db,
 		pokemonService: pokemonService,
 	}
 }
@@ -82,26 +82,26 @@ func (s *PartyService) GetParty(ctx context.Context, trainerID int32) ([]PartyPo
 				return nil, fmt.Errorf("error unmarshaling basic skill: %w", err)
 			}
 		}
-		
+
 		if len(row.SpecialSkill) > 0 {
 			specialSkill, err = s.pokemonService.UnmarshalSkill(row.SpecialSkill)
 			if err != nil {
 				return nil, fmt.Errorf("error unmarshaling special skill: %w", err)
 			}
 		}
-		
+
 		pokemon := PartyPokemon{
-			Slot:         int(row.Slot),
-			OwnpokeID:    row.OwnpokeID,
-			Name:         row.Name,
-			AddedAt:      row.AddedAt.Time,
-			Height:       int(row.Height),
-			Weight:       int(row.Weight),
-			Stats:        stats,
-			Types:        types,
+			Slot:           int(row.Slot),
+			OwnpokeID:      row.OwnpokeID,
+			Name:           row.Name,
+			AddedAt:        row.AddedAt.Time,
+			Height:         int(row.Height),
+			Weight:         int(row.Weight),
+			Stats:          stats,
+			Types:          types,
 			BaseExperience: int(row.BaseExperience),
-			BasicSkill:   basicSkill,
-			SpecialSkill: specialSkill,
+			BasicSkill:     basicSkill,
+			SpecialSkill:   specialSkill,
 		}
 
 		partyPokemon = append(partyPokemon, pokemon)
@@ -116,7 +116,7 @@ func (s *PartyService) GetPartyCount(ctx context.Context, trainerID int32) (int,
 	if err != nil {
 		return 0, fmt.Errorf("error getting party count: %w", err)
 	}
-	
+
 	return int(count), nil
 }
 
@@ -125,7 +125,7 @@ func (s *PartyService) IsSlotOccupied(ctx context.Context, trainerID int32, slot
 	if slot < 1 || slot > MAX_PARTY_SIZE {
 		return false, fmt.Errorf("invalid party slot: must be between 1 and %d", MAX_PARTY_SIZE)
 	}
-	
+
 	occupied, err := s.db.Queries().GetPartySlotOccupied(ctx, dbsqlc.GetPartySlotOccupiedParams{
 		TrainerID: trainerID,
 		Slot:      int32(slot),
@@ -133,7 +133,7 @@ func (s *PartyService) IsSlotOccupied(ctx context.Context, trainerID int32, slot
 	if err != nil {
 		return false, fmt.Errorf("error checking if slot is occupied: %w", err)
 	}
-	
+
 	return occupied, nil
 }
 
@@ -144,18 +144,18 @@ func (s *PartyService) AddToNextAvailableSlot(ctx context.Context, trainerID int
 	if err != nil {
 		return 0, err
 	}
-	
+
 	if count >= MAX_PARTY_SIZE {
 		return 0, fmt.Errorf("party is full")
 	}
-	
+
 	// Find the first available slot
 	for slot := 1; slot <= MAX_PARTY_SIZE; slot++ {
 		occupied, err := s.IsSlotOccupied(ctx, trainerID, slot)
 		if err != nil {
 			return 0, err
 		}
-		
+
 		if !occupied {
 			// Found an empty slot, add the Pokemon
 			err = s.AddPokemonToParty(ctx, trainerID, ownpokeID, slot)
@@ -165,7 +165,7 @@ func (s *PartyService) AddToNextAvailableSlot(ctx context.Context, trainerID int
 			return slot, nil
 		}
 	}
-	
+
 	// This should never happen if GetPartyCount works correctly
 	return 0, fmt.Errorf("no available slots found despite party not being full")
 }
